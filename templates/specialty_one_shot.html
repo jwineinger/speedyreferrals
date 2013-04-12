@@ -1,0 +1,202 @@
+{% extends "base_site.html" %}
+{% load filters %}
+
+{% block bodyclass %}yui-skin-sam{% endblock bodyclass %}
+{% block extrahead %}
+<style>
+  .group { }
+  .specialists { }
+  label { }
+  .clear { clear: both; }
+  th { font-weight: normal; }
+  .required { font-weight: bold; }
+  .center {text-align: center; }
+
+  .header, .specialist .field { float: left; width: 10em; font-size: 123.1%; text-align: center; } 
+  .specialist .field input { width: 90%; }
+  .specialist .field textarea { width: 90%; height: 8em;}
+  .specialist .remove { width: 6em; }
+</style>
+<script type='text/javascript' src="http://yui.yahooapis.com/2.5.1/build/yahoo-dom-event/yahoo-dom-event.js"></script>
+<script type='text/javascript' src="http://yui.yahooapis.com/2.5.1/build/connection/connection-min.js"></script>
+<script type='text/javascript' src="http://yui.yahooapis.com/2.5.1/build/json/json-min.js"></script>
+
+<script type="text/javascript">
+function show_note(link, wrapper)
+{
+  YAHOO.util.Dom.setStyle(link,'display','none');
+  YAHOO.util.Dom.setStyle(wrapper,'display','block');
+}
+function add_group()
+{
+    var groups = YAHOO.util.Dom.get('id_groups_list');
+    var sUrl = "{% url specialty_oneshot_add_group %}?groups="+groups.value;
+    var transaction = YAHOO.util.Connect.asyncRequest('GET', sUrl, add_group_callback, null)
+}
+
+var add_group_callback = 
+{ 
+  success: function(o) {
+    try { 
+        var response = YAHOO.lang.JSON.parse(o.responseText);
+    } 
+    catch (e) { 
+        alert("Invalid response data"); 
+    } 
+    var dest = YAHOO.util.Dom.get('groups_specialists');
+    var groups = YAHOO.util.Dom.get('id_groups_list');
+    var newdiv = document.createElement("div");
+    newdiv.innerHTML = response.new_group_html;
+    first_child = YAHOO.util.Dom.getFirstChild( dest );
+    if(! first_child )
+        dest.appendChild(newdiv);
+    else
+        YAHOO.util.Dom.insertBefore( newdiv, first_child );
+
+    groups.value = response.new_groups_value;
+  },
+  failure: function(o) {
+    //alert('ajax failure');
+  },
+  timeout: 5000, 
+  cache: false
+} 
+function add_specialist(group_number)
+{
+    var specialists = YAHOO.util.Dom.get('id_g'+group_number+'-specialists_list');
+    var sUrl = "{% url specialty_oneshot_add_specialist %}?group_number="+group_number+"&specialists="+specialists.value;
+    var transaction = YAHOO.util.Connect.asyncRequest('GET', sUrl, add_specialist_callback, null)
+}
+
+var add_specialist_callback = 
+{ 
+  success: function(o) {
+    try { 
+        var response = YAHOO.lang.JSON.parse(o.responseText);
+    } 
+    catch (e) { 
+        alert("Invalid response data"); 
+    } 
+    var dest = YAHOO.util.Dom.get('specialists-g'+response.group_number);
+    var specialists = YAHOO.util.Dom.get('id_g'+response.group_number+'-specialists_list');
+    var newdiv = document.createElement("div");
+    newdiv.innerHTML = response.new_specialist_html;
+    YAHOO.util.Dom.insertAfter( newdiv, YAHOO.util.Dom.getLastChild( dest ));
+    //dest.innerHTML += response.new_specialist_html;
+    specialists.value = response.new_specialists_value;
+  },
+  failure: function(o) {
+    alert('ajax failure');
+  },
+  timeout: 5000, 
+  cache: false
+} 
+
+function remove_group(group_number)
+{
+    if(! confirm('Are you sure you want to remove this group and all associated specialists?'))
+        return false;
+
+    var groups_el = YAHOO.util.Dom.get('id_groups_list');
+    var groups = groups_el.value.split(',');
+    for(var i=0; i<groups.length; i++)
+        if(groups[i] == group_number+"")
+            groups.splice(i,1);
+
+    groups_el.value = groups.join();
+
+    group_el = YAHOO.util.Dom.get("group-"+group_number);
+    group_el.parentNode.removeChild(group_el);
+    
+    {% if specialty_id %}
+    var sUrl = "{% url ajax_remove_group specialty_id %}";
+    var transaction = YAHOO.util.Connect.asyncRequest('POST', sUrl, remove_callback, "group_number="+group_number+"&csrfmiddlewaretoken="+YAHOO.util.Dom.get('csrfmiddlewaretoken').value);
+    {% endif %}
+}
+
+function remove_specialist(group_number, specialist_number)
+{
+    if(! confirm('Are you sure you want to remove this specialist?'))
+        return false;
+
+    var specialists_el = YAHOO.util.Dom.get('id_g'+group_number+'-specialists_list');
+    var specialists = specialists_el.value.split(',');
+    for(var i=0; i<specialists.length; i++)
+        if(specialists[i] == specialist_number+"")
+            specialists.splice(i,1);
+
+    specialists_el.value = specialists.join();
+
+    specialist_el = YAHOO.util.Dom.get("specialist-"+group_number+'-'+specialist_number);
+    specialist_el.parentNode.removeChild(specialist_el);
+
+    {% if specialty_id %}
+    var sUrl = "{% url ajax_remove_specialist specialty_id %}";
+    var transaction = YAHOO.util.Connect.asyncRequest('POST', sUrl, remove_callback, "group_number="+group_number+'&specialist_number='+specialist_number+"&csrfmiddlewaretoken="+YAHOO.util.Dom.get('csrfmiddlewaretoken').value);
+    {% endif %}
+
+}
+{% if specialty_id %}
+var remove_callback = 
+{ 
+  success: function(o) { },
+  failure: function(o) {
+    alert('ajax failure');
+  },
+  timeout: 5000, 
+  cache: false
+} 
+
+function remove_specialty()
+{
+    document.location = "{% url django.contrib.admin.views.main.delete_stage "base","specialty",specialty_id %}";
+}
+{% endif %}
+</script>
+{% endblock extrahead %}
+
+{% block content %}
+<div id="content-main">
+    <form action="." method="post">
+    <fieldset class='module'>
+        <h2>Specialty {% if perms.base.reorder_groups and specialty_id %}[<a href="{% url reorder_groups specialty_id %}">Reorder Clinics</a>]{% endif %}</h2>
+        <table>
+        {% if specialty_form.non_field_errors %}
+            <tr><td colspan='2' class='error'>
+            {{ specialty_form.non_field_errors }}
+            </td></tr>
+        {% endif %}
+        {% for field in specialty_form %}
+            {% if not field.is_hidden %}
+            <tr><td class="{% if field.field.required %} required{% endif %}{% if field.errors %} error {% endif %}">
+                <label for="id_{{ field.name }}">{{ field.label }}</label>
+            </td><td{% if field.errors %} class='error'{% endif %}>
+                {{ field }}{% if field.errors %}<br>{{ field.errors }}{% endif %}
+            </td></tr>
+            {% endif %}
+        {% endfor %}
+        </table>
+        <div style='display: none;'>
+        {% for field in specialty_form %}
+            {% if field.is_hidden %}
+                {{ field }}
+            {% endif %}
+        {% endfor %}
+        </div>
+        {% if specialty_id and perms.base.remove_specialty %}<input type='button' onClick="remove_specialty();" value="Remove Specialty">{% endif %}
+    </fieldset>
+
+    {% if perms.base.add_group %}<input type='button' onClick="add_group();" value="Add {{ group_meta.verbose_name|capfirst }}"><br>{% endif %}
+
+    <div id='groups_specialists'>
+    {% for forms, group_number in group_forms|zip:groups_list %}
+        {% include "group_form.html" %}
+    {% endfor %}
+    </div>
+
+    {% if perms.base.add_group %}<input type='button' onClick="add_group();" value="Add {{ group_meta.verbose_name|capfirst }}"><br>{% endif %}
+
+    <input type='submit' value='Submit'>
+    </form>
+</div>
+{% endblock content %}

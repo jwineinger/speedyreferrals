@@ -1,0 +1,67 @@
+{% load filters %}
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="{{ LANGUAGE_CODE }}" xml:lang="{{ LANGUAGE_CODE }}" {% if LANGUAGE_BIDI %}dir="rtl"{% endif %}>
+<head>
+<title>{% block title %}{% endblock %}</title>
+<link rel="stylesheet" type="text/css" href="http://yui.yahooapis.com/2.5.0/build/grids/grids-min.css">
+<link rel="stylesheet" type="text/css" href="{% block stylesheet %}{% load adminmedia %}{% admin_media_prefix %}css/base.css{% endblock %}" />
+<style>
+#site-name { text-align: left; }
+</style>
+{% block extrastyle %}{% endblock %}
+{% block extrahead %}{% endblock %}
+{% block blockbots %}<meta name="robots" content="NONE,NOARCHIVE" />{% endblock %}
+</head>
+{% spaceless %}
+
+<body class="{% if is_popup %}popup {% endif %}{% block bodyclass %}{% endblock %}">
+
+<!-- Container -->
+<div id="container">
+
+    {% if not is_popup %}
+    <!-- Header -->
+    <div id="header">
+        <div id="branding">
+        {% block branding %}{% endblock %}
+        </div>
+        {% block user_tools %}
+        <div id="user-tools">
+        Welcome <strong>{% if user.first_name %}{{ user.first_name|escape }}{% else %}{{ user.username }}{% endif %}</strong>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        {% if perms.auth %} <a href="{% url user_list %}">User Admin</a> / {% endif %}
+        <a href="{% url django.contrib.auth.views.password_change %}">Change password</a>
+        / <a href="{% url django.contrib.auth.views.logout %}">Log out</a>
+        </div>
+        {% endblock user_tools %}
+        {% block nav-global %}{% endblock %}
+    </div>
+    <!-- END Header -->
+    {# {% block breadcrumbs %}<div class="breadcrumbs"><a href="/">Home</a>{% if title %} &rsaquo; {{ title|escape }}{% endif %}</div>{% endblock %} #}<br>
+    {% endif %}
+
+        {% if messages %}
+        <ul class="messagelist">{% for message in messages %}<li>{{ message|escape }}</li>{% endfor %}</ul>
+        {% endif %}
+
+    <!-- Content -->
+    <div id="doc3" class="{% block coltype %}yui-t2{% endblock %}">
+        {% block pretitle %}{% endblock %}
+        {% block content_title %}{% if title %}<h1>{{ title|escape }}</h1>{% endif %}{% endblock %}
+        {% block content %}
+        {% block object-tools %}{% endblock %}
+        {{ content }}
+        {% endblock %}
+        {% block sidebar %}{% endblock %}
+        <br class="clear" />
+    </div>
+    <!-- END Content -->
+
+    {% block footer %}<div id="footer"></div>{% endblock %}
+</div>
+<!-- END Container -->
+
+{% block extrabody %}
+{% endblock extrabody %}
+</body>
+</html>
+{% endspaceless %}

@@ -1,0 +1,40 @@
+{% extends "base_site.html" %}
+
+{% block extrahead %}
+<style>
+  li:hover { background-color: #abf; cursor:pointer;  }
+</style>
+{% endblock extrahead %}
+
+{% block content %}
+<h1>User List</h1>
+<p>Click on a user to edit or <button onClick="document.location='{% url user_add %}';">Add New User</button></p>
+    <div class='yui-gb'>
+        <div class='yui-u first'>
+            <h3>Administrators</h3>
+            <ul>
+                {% for u in admin_list %}
+                <li onClick="document.location='{% url user_edit username=u.username %}';">{% if not u.last_name and not u.first_name %}{{ u.username }}{% else %}{{ u.last_name }}, {{ u.first_name }}{% endif %}</li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <div class='yui-u'>
+            <h3>Providers</h3>
+            <ul>
+                {% for u in provider_list %}
+                <li onClick="document.location='{% url user_edit username=u.username %}';">{% if not u.last_name and not u.first_name %}{{ u.username }}{% else %}{{ u.last_name }}, {{ u.first_name }}{% endif %}</li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <div class='yui-u'>
+            <h3>Staff</h3>
+            <ul>
+                {% for u in staff_list %}
+                <li onClick="document.location='{% url user_edit username=u.username %}';">{% if not u.last_name and not u.first_name %}{{ u.username }}{% else %}{{ u.last_name }}, {{ u.first_name }}{% endif %}</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+{% endblock content %}

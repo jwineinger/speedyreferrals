@@ -1,0 +1,19 @@
+<fieldset class='module specialists'>
+    <h2>{{ specialist_meta.verbose_name_plural|capfirst }}</h2>
+    <div id="specialists-g{% firstof group_number forloop.counter %}">
+        <div>
+        {% for field in specialist_reference_form %}
+            <div class='header{% if field.field.required %} required{% endif %}'>{{ field.label }}</div>
+        {% endfor %}
+            <div class='clear'></div>
+        </div>
+
+        {% include "specialists_form_row.html" %}
+    </div>
+    {% if perms.base.add_specialist %}
+    <div class='center'>
+        <input type='button' value='Add {{ specialist_meta.verbose_name }}' onClick='add_specialist({% firstof group_number forloop.counter %});'>
+    </div>
+    {% endif %}
+
+</fieldset>

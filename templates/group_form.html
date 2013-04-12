@@ -1,0 +1,37 @@
+<table id="group-{% firstof group_number forloop.counter %}"><tr><td>
+    <fieldset class='module group'>
+        <h2>{{ group_meta.verbose_name|capfirst }} {% if perms.base.reorder_specialists and forloop.counter %}[<a href="{% url reorder_specialists forloop.counter %}">Reorder Specialists</a>]{% endif %}</h2>
+
+        <Table>
+        {% for field in forms.group %}
+            {% if not field.is_hidden %}
+            <tr><th class="{% if field.field.required %}required{% endif %}{% if field.errors %} error{% endif %}">
+                <label for="id_{% firstof group_number forloop.parentloop.counter0 %}-{{ field.name }}">{{ field.label }}</label>
+            </td><td{% if field.errors %} class="error"{% endif %}>
+                {% ifnotequal field.name 'note' %}
+                    {{ field }}{% if field.errors %}<br>{{ field.errors }}{% endif %}
+                {% else %}
+                    <a href='#' onClick='show_note(this, YAHOO.util.Dom.get("wrap-group-note-{% firstof group_number forloop.parentloop.counter0 %}")); return false;'>Edit Note</a>
+                    <div id='wrap-group-note-{% firstof group_number forloop.parentloop.counter0 %}' style='display: none;'>{{ field }}</div>
+                {% endifnotequal %}
+                {#{{ field }}{% if field.errors %}<br>{{ field.errors }}{% endif %}#}
+            </td></tr>
+            {% endif %}
+        {% endfor %}
+            {% if perms.base.remove_group %}
+            <tr><td colspan='2' class='center'>
+                <input type='button' onClick="remove_group({% firstof group_number forloop.counter %}); return false;" value="Remove Group">
+            </td></tr>
+            {% endif %}
+        </table>
+        <div style='display: none;'>
+        {% for field in forms.group %}
+            {% if field.is_hidden %}
+                {{ field }}
+            {% endif %}
+        {% endfor %}
+        </div>
+    </fieldset>
+</td><td>
+    {% include "specialists_form.html" %}
+</td></tr></table>

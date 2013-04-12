@@ -1,0 +1,29 @@
+<html>
+<body>
+
+<h1>cache status</h1>
+
+<ul>
+<li>memory usage:
+    {{ stats.bytes|filesizeformat }}
+<div style="height:1.2em; width:400px; background-color: green;">
+  <div style="height:1.2em; width:{% widthratio stats.bytes 64000000 100 %}%; background-color: red; color: green; text-align: center; font-weight: bold">Used</div>
+</div>
+
+<li>keys in cache:
+   {{ stats.curr_items }} of {{ stats.total_items }}
+
+<li>cache hits:
+    {{ stats.get_hits }} of {{ stats.cmd_get }}:
+    <b>{{ hit_rate }}%</b><br>
+<div style="height:1.2em; width:400px; background-color: red;">
+  <div style="height:1.2em; width:{% widthratio stats.get_hits stats.cmd_get 100 %}%; background-color: green; color: white; text-align: center; font-weight: bold"></div>
+</div>
+<li>cache traffic:
+    {{ stats.bytes_read|filesizeformat }} in,
+    {{ stats.bytes_written|filesizeformat }} out
+<li>uptime: {{ stats.uptime }}
+</ul>
+
+</body>
+</html>

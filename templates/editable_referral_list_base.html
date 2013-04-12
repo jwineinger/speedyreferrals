@@ -1,0 +1,213 @@
+{% extends "base_site.html" %}
+
+{% block branding %}
+<h1 id="site-name">Riverway - Pediatrics</h1>
+{% endblock branding %}
+
+{% block extrastyle %}
+<style>
+.preferred { background-color: #cfc; }
+.preferred .preferred { background-color: #ccf; }
+.specialty .note { color: red; margin: .3em 1em; }
+.group .name { font-size: 1.2em; }
+.group .costtier { font-weight: bold; font-size: 1.2em;}
+.tier1 { color: #0a0; }
+.tier2 { color: #9c0;}
+.tier3 {color: #fc3;}
+.tier4 {color: red;}
+
+.group .note { color: red; margin: .3em 1em; }
+.note p { margin: 0; }
+#site-name { text-align: left; }
+#filters {
+  background-color: #eee;
+}
+#filters ul {
+  margin: 0;
+}
+#filters li {
+  list-style-type: none;
+  padding: 1px 0pt;
+}
+#filters li.selected {
+  border-left:5px solid #CCCCCC;
+  margin-left:-10px;
+  padding-left:5px;
+  color: #22a;
+  background-color: #ccc;
+}
+.group img, .specialist img {
+  height: 16px;
+  width: 16px;
+  margin-right: .3em;
+  position: relative;
+  top: 2px;
+}
+</style>
+{% endblock extrastyle %}
+
+{% block extrahead %}
+<script src="http://yui.yahooapis.com/2.5.0/build/yahoo-dom-event/yahoo-dom-event.js"></script> 
+<script src="http://yui.yahooapis.com/2.5.0/build/connection/connection-min.js"></script>
+<script src="http://yui.yahooapis.com/2.5.0/build/json/json-min.js"></script>
+{% endblock %}
+
+{% block content %}
+{% spaceless %}
+  {#{{ query_count|safe }}#}
+  <div id='yui-main'>
+    <div class='yui-b'>
+    
+      {% if perms.base.add_specialty %}
+      <div class='module specialty'>
+      <h2>[<a href="{% url add_specialty %}">Add New Specialty</a>]</h2>
+      </div>
+      {% endif %}
+
+      {% for specialty in specialty_list %}
+      <div class='module specialty'>
+        <h2>{{specialty}} {% if perms.base.change_specialty %}[<a href="{% url edit_specialty specialty.id %}">Edit</a>] {% endif %}</h2>
+        <div class='note'>{{ specialty.note|linebreaks }}</div>
+        <ul> {% for group in specialty.group_list %}
+          <li class="group{% if group.preferred %} preferred{% endif %}" id="gid_{{ group.id }}">
+            {% block group_image %}
+              <img id='gid_{{ group.id }}_img' src="{{ MEDIA_URL }}{% if group.preferred %}square-green.png{% else %}square-gray.png{% endif %}" onClick="PG_Ajax.startRequest({{group.id}});">
+            {% endblock group_image %}
+            <span class='name'>{{ group }}</a></span> 
+            {% if group.cost_tier and request.user.is_staff %} - <span class='costtier tier{{group.cost_tier}}'>{{ group.get_cost_tier_display }}</span>{% endif %}
+            {% if group.location %} - {{ group.location }}{% endif %}
+            {% if group.phone %} - Ph: <b>{{ group.phone }}</b>{% endif %}
+            {% if group.fax %} - Fax: <b>{{ group.fax }}</b>{% endif %}
+            {% if group.records_fax %}- MR Fax: <b>{{ group.records_fax }}</b>{% endif %}
+            {% if group.website %}- {{ group.website|urlizetrunc:30 }}{% endif %}
+            {% if group.note %}<br><div class='note'>{{ group.note|linebreaks }}</div>{% endif %}
+            <ul>
+            {% for specialist in group.specialist_list %}
+              <li{% if specialist.preferred %} class="preferred"{% endif %} id="sid_{{ specialist.id }}">
+                {% block specialist_image %}
+                  <img id='sid_{{ specialist.id }}_img' src="{{ MEDIA_URL }}{% if specialist.preferred %}square-green.png{% else %}square-gray.png{% endif %}" onClick="PS_Ajax.startRequest({{specialist.id}});">
+                {% endblock specialist_image %}
+                <span class='specialist'>{{specialist}}</span>
+                  {% if specialist.location %} - {{ specialist.location }}{% endif %}
+                  {% if specialist.note %}<div class='note'>{{ specialist.note|linebreaks }}</div>{% endif %}
+              </li>
+            {% endfor %}
+            </ul>
+          </li>
+        {% endfor %}
+        </ul>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  <div class='yui-b module' id='filters'>
+    <h2>Filter</h2>
+    <h3>By Provider</h3>
+    <ul class='quiet'>
+
+      {% if not selected_doctor.id %}
+        <li class='selected'>Department</li>
+      {% else %}
+        <li><a href="{% url show_filtered_list doctor="department",selected_specialty.slug %}">Department</a></li>
+      {% endif %}
+
+      {% for doctor in doctors_list %}
+        <li{% ifequal selected_doctor.id doctor.id %} class="selected"{% endifequal %}>
+          <a href="{% url show_filtered_list doctor.username,selected_specialty.slug %}">{{ doctor.last_name }}, {{ doctor.first_name }}</a>
+        </li>
+      {% endfor %}
+    </ul>
+
+    <br>
+    <h3>By Specialty</h3>
+    <ul class='quiet'>
+      {% if not selected_specialty.id %}
+        <li class='selected'>All</li>
+      {% else %}
+        <li><a href="{% url show_filtered_list doctor=selected_doctor.username,specialty="all" %}">All</a></li>
+      {% endif %}
+
+      {% for specialty in all_specialties %}
+        <li{% ifequal selected_specialty.id specialty.id %} class="selected"{% endifequal %}>
+          <a href="{% url show_filtered_list selected_doctor.username,specialty.slug %}">{{ specialty.name }}</a>
+        </li>
+      {% endfor %}
+    </ul>
+  </div>
+<form method='post' action='.'></form>
+{% endspaceless %}
+{% endblock content %}
+
+{% block extrabody %}
+<script type='text/javascript' language='javascript'>
+var PG_Ajax = { 
+    handleSuccess:function(o){ 
+      try { 
+        var response = YAHOO.lang.JSON.parse(o.responseText); 
+        el = YAHOO.util.Dom.get('gid_'+response.gid);
+        img_el = YAHOO.util.Dom.get('gid_'+response.gid+'_img');
+        if(response.preferred == "1")
+        {
+          YAHOO.util.Dom.addClass(el, 'preferred');
+          img_el.src = '{{ MEDIA_URL }}square-green.png';
+        }
+        else if(response.preferred == "0")
+        {
+          YAHOO.util.Dom.removeClass(el, 'preferred');
+          img_el.src = '{{ MEDIA_URL }}square-gray.png';
+        }
+      } 
+      catch (e) { } 
+    }, 
+ 
+    handleFailure:function(o){ }, 
+ 
+    startRequest:function(gid) { 
+       csrftoken = YAHOO.util.Dom.get('csrfmiddlewaretoken').value;
+       YAHOO.util.Connect.asyncRequest('POST'," {% block toggle_group_url %}{% endblock toggle_group_url %}", PG_callback, "csrfmiddlewaretoken="+csrftoken+"&gid="+gid); 
+    }
+}; 
+ 
+var PG_callback = 
+{ 
+    success:PG_Ajax.handleSuccess, 
+    failure:PG_Ajax.handleFailure, 
+    scope:  PG_Ajax 
+}; 
+ 
+var PS_Ajax = { 
+    handleSuccess:function(o){ 
+      try { 
+        var response = YAHOO.lang.JSON.parse(o.responseText); 
+        el = YAHOO.util.Dom.get('sid_'+response.sid);
+        img_el = YAHOO.util.Dom.get('sid_'+response.sid+'_img');
+        if(response.preferred == 1)
+        {
+          YAHOO.util.Dom.addClass(el, 'preferred');
+          img_el.src = '{{ MEDIA_URL }}square-green.png';
+        }
+        else if(response.preferred == 0)
+        {
+          YAHOO.util.Dom.removeClass(el, 'preferred');
+          img_el.src = '{{ MEDIA_URL }}square-gray.png';
+        }
+      } 
+      catch (e) { } 
+    }, 
+ 
+    handleFailure:function(o){ }, 
+ 
+    startRequest:function(sid) { 
+       csrftoken = YAHOO.util.Dom.get('csrfmiddlewaretoken').value;
+       YAHOO.util.Connect.asyncRequest('POST', "{% block toggle_specialist_url %}'{% url toggle_user_preferred_specialist %}'{% endblock toggle_specialist_url %}", PS_callback, "csrfmiddlewaretoken="+csrftoken+"&sid="+sid); 
+    }
+}; 
+ 
+var PS_callback = 
+{ 
+    success:PS_Ajax.handleSuccess, 
+    failure:PS_Ajax.handleFailure, 
+    scope:  PS_Ajax 
+}; 
+</script>
+{% endblock extrabody %}

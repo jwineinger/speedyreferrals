@@ -1,0 +1,22 @@
+    {% load filters %}
+    {% for specialist_form, specialist_number in forms.specialists|zip:forms.specialist_list %}
+        <div id="specialist-{% firstof group_number forloop.parentloop.counter %}-{% firstof specialist_number forloop.counter %}" class='specialist'>
+            {#<th>{% firstof specialist_number forloop.counter %}</th>#}
+        {% for field in specialist_form %}
+            <div class='field {% if field.errors %}error{% endif %}'>
+            {% ifnotequal field.name 'note' %}
+                {{ field }}{% if field.errors %}<br>{{ field.errors }}{% endif %}
+            {% else %}
+                <a href='#' onClick='show_note(this, YAHOO.util.Dom.get("wrap-specialist-note-{% firstof group_number forloop.parentloop.counter %}-{% firstof specialist_number forloop.counter %}")); return false;'>Edit Note</a>
+                <div id='wrap-specialist-note-{% firstof group_number forloop.parentloop.counter %}-{% firstof specialist_number forloop.counter %}' style='display: none;'>{{ field }}</div>
+            {% endifnotequal %}
+            </div>
+        {% endfor %}
+        {% if perms.base.remove_specialist %}
+            <div class='field remove'>
+                <input type='button' onClick="remove_specialist({% firstof group_number forloop.parentloop.counter %},{% firstof specialist_number forloop.counter %});return false;" value="Remove">
+            </div>
+        {% endif %}
+            <div class='clear'></div>
+        </div>
+    {% endfor %}

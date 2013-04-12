@@ -1,0 +1,5 @@
+{% extends "reorder.html" %}
+
+{% block ajax_url %}{% url reorder_groups specialty.id %}{% endblock ajax_url %}
+{% block back_url %}{% url edit_specialty specialty.id %}{% endblock back_url %}
+{% block redirect_url %}{% url show_filtered_list "department",specialty.slug %}{% endblock redirect_url %}
